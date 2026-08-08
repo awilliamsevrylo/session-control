@@ -62,6 +62,8 @@ import {
 	createVSCodeHandoffDispatcher,
 	type HandoffDispatchResult,
 	type HandoffSelectionId,
+	type HandoffTargetCommands,
+	type HandoffTargetId,
 } from './handoffDispatcher';
 import { CopilotSession, readCopilotSessions } from './sessionReader';
 import { buildImplementationHandoffPrompt, createSingleSessionSelection } from './sessionAnalysis';
@@ -2558,6 +2560,40 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 		});
 	};
 
+	const runNativeHandoff = async (): Promise<void> => {
+		const targets: readonly { label: string; target: HandoffTargetId }[] = [
+			{ label: 'ZCode', target: 'zcode' },
+			{ label: 'Claude', target: 'claude' },
+			{ label: 'Grok', target: 'grok' },
+		];
+		const selection = await vscode.window.showQuickPick(targets, {
+			placeHolder: 'Choose a handoff target',
+		});
+		if (!selection) {
+			return;
+		}
+
+		const prompt = await vscode.window.showInputBox({
+			prompt: `Prompt to hand off to ${selection.label}`,
+			ignoreFocusOut: true,
+		});
+		if (!prompt?.trim()) {
+			return;
+		}
+
+		const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+		const configuredCommands = workspaceFolder
+			? vscode.workspace
+				.getConfiguration('session-control', workspaceFolder.uri)
+				.get<HandoffTargetCommands>('resume.providerCommands', {})
+			: {};
+		const result = await createVSCodeHandoffDispatcher().dispatch(prompt, selection.target, {
+			configuredCommands,
+			promptLabel: 'handoff prompt',
+		});
+		await vscode.window.showInformationMessage(result.instruction);
+	};
+
 	context.subscriptions.push(
 		...initializeProLicenseCommands(context),
 		vscode.commands.registerCommand('session-control.saveSessionFromProvider', async () => {
@@ -2609,6 +2645,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 		vscode.commands.registerCommand('session-control.implementLatestAnalysis', async () => {
 			await runImplementLatestAnalysisCommand();
 		}),
+		vscode.commands.registerCommand('session-control.handoffPrompt', runNativeHandoff),
 		vscode.commands.registerCommand('session-control.importCopilotSkillsToCursor', async () => {
 			await runImportCopilotSkillsToCursorCommand();
 		}),

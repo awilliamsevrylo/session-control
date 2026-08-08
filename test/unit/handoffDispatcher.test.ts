@@ -21,17 +21,19 @@ function createDeps(overrides: Partial<HandoffDispatcherDeps> = {}): HandoffDisp
 }
 
 suite('handoffDispatcher', () => {
-	test('detects Chat, Agent Session, Codex, and Claude Code targets', () => {
+	test('detects configured ZCode, Claude, and Grok targets', () => {
 		const targets = detectHandoffTargets([
 			'workbench.action.chat.open',
-			'workbench.action.chat.openAgents',
 			'workbench.action.chat.focusInput',
-			'chatgpt.openSidebar',
-			'chatgpt.sidebarView.focus',
 			'claude-vscode.sidebar.open',
 			'claude-vscode.newConversation',
 			'claude-vscode.focus',
-		]);
+			'custom.zcode.open',
+			'custom.grok.open',
+		], {
+			zcode: 'custom.zcode.open',
+			grok: 'custom.grok.open',
+		});
 
 		assert.deepEqual(
 			targets.map((target) => ({
@@ -46,18 +48,23 @@ suite('handoffDispatcher', () => {
 					supportsQuery: true,
 				},
 				{
-					id: 'agentSession',
-					commandId: 'workbench.action.chat.openAgents',
-					supportsQuery: false,
-				},
-				{
-					id: 'codex',
-					commandId: 'chatgpt.openSidebar',
-					supportsQuery: false,
-				},
-				{
 					id: 'claude-code',
 					commandId: 'claude-vscode.sidebar.open',
+					supportsQuery: false,
+				},
+				{
+					id: 'claude',
+					commandId: 'claude-vscode.sidebar.open',
+					supportsQuery: false,
+				},
+				{
+					id: 'zcode',
+					commandId: 'custom.zcode.open',
+					supportsQuery: false,
+				},
+				{
+					id: 'grok',
+					commandId: 'custom.grok.open',
 					supportsQuery: false,
 				},
 			],
@@ -236,6 +243,35 @@ suite('handoffDispatcher', () => {
 		assert.equal(result.deliveredTo, 'codex');
 	});
 
+	test('dispatches a configured Grok target without submitting the handoff', async () => {
+		const commands: string[] = [];
+		const dispatcher = createHandoffDispatcher(createDeps({
+			getCommands: async () => [
+				'custom.grok.open',
+				'workbench.action.chat.focusInput',
+				'workbench.action.chat.open',
+			],
+			executeCommand: async (commandId: string) => {
+				commands.push(commandId);
+			},
+			sleep: async () => undefined,
+		}));
+
+		const result = await dispatcher.dispatch('Grok work.', 'grok', {
+			configuredCommands: {
+				grok: 'custom.grok.open',
+			},
+		});
+
+		assert.deepEqual(commands, [
+			'custom.grok.open',
+			'workbench.action.chat.focusInput',
+			'editor.action.clipboardPasteAction',
+		]);
+		assert.equal(result.deliveredTo, 'grok');
+		assert.match(result.instruction, /^Opened Grok and pasted the prompt\./);
+	});
+
 	test('prepares and refocuses Claude Code before pasting', async () => {
 		const commands: string[] = [];
 		const waits: number[] = [];
@@ -254,10 +290,10 @@ suite('handoffDispatcher', () => {
 			},
 		}));
 
-		const result = await dispatcher.dispatch('Claude work.', 'claude-code');
+		const result = await dispatcher.dispatch('Claude work.', 'claude');
 
 		assert.equal(result.method, 'paste');
-		assert.equal(result.deliveredTo, 'claude-code');
+		assert.equal(result.deliveredTo, 'claude');
 		assert.deepEqual(commands, [
 			'claude-vscode.sidebar.open',
 			'claude-vscode.newConversation',

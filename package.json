@@ -106,6 +106,12 @@
         "icon": "$(sparkle)"
       },
       {
+        "command": "session-control.handoffPrompt",
+        "title": "Handoff Prompt to ZCode, Claude, or Grok",
+        "category": "Session Control",
+        "icon": "$(arrow-swap)"
+      },
+      {
         "command": "session-control.importCopilotSkillsToCursor",
         "title": "Import Copilot Guidance as Cursor Skills",
         "category": "Session Control"
@@ -329,6 +335,10 @@
               "type": "string",
               "description": "Command ID used to open Codex chat for resume."
             },
+            "zcode": {
+              "type": "string",
+              "description": "Command ID used to open ZCode chat for handoff."
+            },
             "cursor": {
               "type": "string",
               "description": "Command ID used to open Cursor agent chat for resume."
@@ -336,6 +346,14 @@
             "claude-code": {
               "type": "string",
               "description": "Command ID used to open Claude Code chat for resume."
+            },
+            "claude": {
+              "type": "string",
+              "description": "Command ID used to open Claude chat for handoff."
+            },
+            "grok": {
+              "type": "string",
+              "description": "Command ID used to open Grok chat for handoff."
             }
           },
           "description": "Provider-specific chat command IDs that override Session Control's built-in resume command discovery.",
@@ -480,6 +498,9 @@
           "command": "session-control.importCopilotSkillsToClaudeCode"
         },
         {
+          "command": "session-control.handoffPrompt"
+        },
+        {
           "command": "session-control.toggleAutoSave"
         },
         {
@@ -603,7 +624,6 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "@tempuskg/session-control-pro": "^0.2.1",
     "marked": "^4.3.0"
   }
 }

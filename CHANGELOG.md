@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added **Handoff Prompt to ZCode, Claude, or Grok**, which opens the selected target and pastes a prompt without submitting it. ZCode and Grok use the command IDs configured in `session-control.resume.providerCommands`.
+
+### Changed
+- Removed the private `@tempuskg/session-control-pro` install dependency. The optional companion loader remains non-blocking, so the public extension now installs from npm without private registry credentials.
+
 ## [1.3.7] - 2026-08-03
 
 ### Changed

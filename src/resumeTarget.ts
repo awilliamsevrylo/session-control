@@ -6,7 +6,8 @@ export interface ResumeTarget {
 	supportsQuery: boolean;
 }
 
-export type ResumeProviderCommands = Partial<Record<SessionProviderId, string>>;
+export type ResumeProviderCommandId = SessionProviderId | 'zcode' | 'grok';
+export type ResumeProviderCommands = Partial<Record<ResumeProviderCommandId, string>>;
 
 const COMMANDS_SUPPORTING_QUERY = new Set([
 	'workbench.action.chat.open',

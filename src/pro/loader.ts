@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import {
 	createVSCodeHandoffDispatcher,
 	type HandoffDispatcher,
+	type HandoffTargetId,
 } from '../handoffDispatcher';
 import {
 	isProFeatureRegistrarModule,
@@ -11,6 +12,9 @@ import {
 	type ProFeatureRegistrationContext,
 	type ProFeatureRegistrationResult,
 	type SharedHandoffCapabilityV1,
+	type SharedHandoffDispatchResult,
+	type SharedHandoffFailureTarget,
+	type SharedHandoffTargetId,
 } from './contracts';
 
 export const DEFAULT_PRO_PACKAGE_NAME = '@tempuskg/session-control-pro';
@@ -75,13 +79,47 @@ function normalizeRegistrationResult(
 	return [result as vscode.Disposable];
 }
 
+function toSharedHandoffTargetId(target: HandoffTargetId): SharedHandoffTargetId {
+	switch (target) {
+		case 'chat':
+		case 'agentSession':
+		case 'codex':
+		case 'claude-code':
+			return target;
+		case 'zcode':
+		case 'claude':
+		case 'grok':
+			throw new Error(`Target '${target}' is not available through the legacy Pro handoff capability.`);
+	}
+}
+
+function toSharedHandoffFailureTarget(target: HandoffTargetId | 'clipboard'): SharedHandoffFailureTarget {
+	return target === 'clipboard' ? target : toSharedHandoffTargetId(target);
+}
+
+function toSharedHandoffResult(result: Awaited<ReturnType<HandoffDispatcher['dispatchSelection']>>): SharedHandoffDispatchResult {
+	return {
+		selectedTarget: toSharedHandoffTargetId(result.selectedTarget),
+		deliveredTo: result.deliveredTo === null || result.deliveredTo === 'clipboard'
+			? result.deliveredTo
+			: toSharedHandoffTargetId(result.deliveredTo),
+		method: result.method,
+		instruction: result.instruction,
+		failures: result.failures.map((failure) => ({
+			target: toSharedHandoffFailureTarget(failure.target),
+			stage: failure.stage,
+			message: failure.message,
+		})),
+	};
+}
+
 function createSharedHandoffCapability(
 	dispatcher: Pick<HandoffDispatcher, 'dispatchSelection'>,
 ): SharedHandoffCapabilityV1 {
 	return {
 		version: SHARED_HANDOFF_CAPABILITY_VERSION,
 		dispatch: async (prompt, selectedTarget, options) =>
-			dispatcher.dispatchSelection(prompt, selectedTarget, options),
+			toSharedHandoffResult(await dispatcher.dispatchSelection(prompt, selectedTarget, options)),
 	};
 }
 

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-export const HANDOFF_TARGET_IDS = ['chat', 'agentSession', 'codex', 'claude-code'] as const;
+export const HANDOFF_TARGET_IDS = ['chat', 'agentSession', 'codex', 'claude-code', 'zcode', 'claude', 'grok'] as const;
 export const HANDOFF_AGENT_PROVIDER_IDS = ['cursor', 'codex', 'claude-code'] as const;
 
 export type HandoffTargetId = (typeof HANDOFF_TARGET_IDS)[number];
@@ -165,6 +165,31 @@ const TARGET_DEFINITIONS: readonly HandoffTargetDefinition[] = [
 		],
 		prepareCommandIds: ['claude-vscode.newConversation'],
 	},
+	{
+		id: 'zcode',
+		label: 'ZCode',
+		commandIds: [],
+		focusCommandIds: ['workbench.action.chat.focusInput'],
+	},
+	{
+		id: 'claude',
+		label: 'Claude',
+		commandIds: CLAUDE_CODE_COMMAND_IDS,
+		focusCommandIds: [
+			'claude-vscode.focus',
+			'claudeVSCodeSidebarSecondary.focus',
+			'claudeVSCodeSidebar.focus',
+			'workbench.view.extension.claude-sidebar',
+			'workbench.view.extension.claude-sidebar-secondary',
+		],
+		prepareCommandIds: ['claude-vscode.newConversation'],
+	},
+	{
+		id: 'grok',
+		label: 'Grok',
+		commandIds: [],
+		focusCommandIds: ['workbench.action.chat.focusInput'],
+	},
 ];
 
 const AGENT_PROVIDER_DEFINITIONS: readonly HandoffAgentProviderDefinition[] = [
@@ -193,6 +218,9 @@ const TARGET_LABELS: Record<HandoffTargetId, string> = {
 	agentSession: 'Agent Session',
 	codex: 'Codex',
 	'claude-code': 'Claude Code',
+	zcode: 'ZCode',
+	claude: 'Claude',
+	grok: 'Grok',
 };
 
 const DEFAULT_PASTE_RETRY_PROFILE: PasteRetryProfile = {
@@ -320,7 +348,7 @@ function getPasteRetryProfile(target: HandoffTarget): PasteRetryProfile {
 	if (target.id === 'codex') {
 		return CODEX_PASTE_RETRY_PROFILE;
 	}
-	if (target.id === 'claude-code' && target.focusCommandId === 'claude-vscode.focus') {
+	if ((target.id === 'claude-code' || target.id === 'claude') && target.focusCommandId === 'claude-vscode.focus') {
 		return CLAUDE_CODE_PASTE_RETRY_PROFILE;
 	}
 
