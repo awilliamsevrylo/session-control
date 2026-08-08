@@ -53,13 +53,13 @@ suite('handoffDispatcher', () => {
 					supportsQuery: false,
 				},
 				{
-					id: 'claude',
-					commandId: 'claude-vscode.sidebar.open',
+					id: 'zcode',
+					commandId: 'custom.zcode.open',
 					supportsQuery: false,
 				},
 				{
-					id: 'zcode',
-					commandId: 'custom.zcode.open',
+					id: 'claude',
+					commandId: 'claude-vscode.sidebar.open',
 					supportsQuery: false,
 				},
 				{

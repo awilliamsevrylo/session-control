@@ -65,6 +65,7 @@ import {
 	type HandoffTargetCommands,
 	type HandoffTargetId,
 } from './handoffDispatcher';
+import { buildGrokHandoff, portSessionToZCode, sendSessionToGrok } from './nativeTargets';
 import { CopilotSession, readCopilotSessions } from './sessionReader';
 import { buildImplementationHandoffPrompt, createSingleSessionSelection } from './sessionAnalysis';
 import {
@@ -2438,6 +2439,57 @@ export async function runResumeSessionFromViewerCommand(
 	}
 }
 
+export async function runPortSessionFromViewerCommand(): Promise<void> {
+	const panel = SessionViewerPanel.currentPanel;
+	const session = panel?.getSession();
+	if (!panel || !session) {
+		await vscode.window.showInformationMessage('Open a saved session in the viewer before porting it.');
+		return;
+	}
+
+	const target = await vscode.window.showQuickPick([
+		{ label: 'ZCode', value: 'zcode' as const },
+		{ label: 'Claude', value: 'claude' as const },
+		{ label: 'Grok', value: 'grok' as const },
+	], { placeHolder: 'Choose where to port this saved session' });
+	if (!target) {
+		return;
+	}
+
+	const fileUri = vscode.Uri.file(panel.getFilePath());
+	const workspaceFolder = vscode.workspace.getWorkspaceFolder(fileUri) ?? getImplicitWorkspaceFolder();
+	const configuration = vscode.workspace.getConfiguration('session-control', workspaceFolder?.uri ?? fileUri);
+	if (target.value === 'zcode') {
+		const snapshotPath = await portSessionToZCode(session, workspaceFolder?.uri.fsPath ?? path.dirname(fileUri.fsPath));
+		await vscode.window.showInformationMessage(`Ported '${session.title}' to ZCode: ${snapshotPath}`);
+		return;
+	}
+	if (target.value === 'grok') {
+		const configuredSessionId = configuration.get<string>('grok.sessionId', '');
+		const grokSessionId = await vscode.window.showInputBox({
+			prompt: 'Drew session ID for Grok',
+			value: configuredSessionId,
+			ignoreFocusOut: true,
+		});
+		if (!grokSessionId?.trim()) {
+			return;
+		}
+		await sendSessionToGrok(
+			session,
+			grokSessionId,
+			configuration.get<string>('grok.drewChannelPath', 'drew-channel'),
+		);
+		await vscode.window.showInformationMessage(`Sent '${session.title}' to Grok.`);
+		return;
+	}
+
+	const result = await createVSCodeHandoffDispatcher().dispatch(buildGrokHandoff(session), 'claude', {
+		configuredCommands: configuration.get<HandoffTargetCommands>('resume.providerCommands', {}),
+		promptLabel: 'session handoff',
+	});
+	await vscode.window.showInformationMessage(result.instruction);
+}
+
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
 	const output = vscode.window.createOutputChannel('Session Control');
 	context.subscriptions.push(output);
@@ -2634,6 +2686,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 		}),
 		vscode.commands.registerCommand('session-control.resumeSessionFromViewer', async () => {
 			await runResumeSessionFromViewerCommand();
+		}),
+		vscode.commands.registerCommand('session-control.portSessionFromViewer', async () => {
+			await runPortSessionFromViewerCommand();
 		}),
 		vscode.commands.registerCommand('session-control.analyzeSavedChats', async () => {
 			await runAnalyzeSavedChatsCommand();

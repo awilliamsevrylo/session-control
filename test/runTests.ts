@@ -1,4 +1,5 @@
 import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import { downloadAndUnzipVSCode, runTests } from '@vscode/test-electron';
 
@@ -69,12 +70,17 @@ async function main(): Promise<void> {
 		const extensionDevelopmentPath = path.resolve(__dirname, '..', '..');
 		const extensionTestsPath = path.resolve(__dirname, 'suite', 'index.js');
 		const vscodeExecutablePath = await resolveVscodeExecutablePath();
-
-		await runTests({
-			vscodeExecutablePath,
-			extensionDevelopmentPath,
-			extensionTestsPath,
-		});
+		const userDataDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'session-control-test-'));
+		try {
+			await runTests({
+				vscodeExecutablePath,
+				extensionDevelopmentPath,
+				extensionTestsPath,
+				launchArgs: [`--user-data-dir=${userDataDirectory}`],
+			});
+		} finally {
+			await fs.rm(userDataDirectory, { recursive: true, force: true });
+		}
 	} catch (error) {
 		console.error('Failed to run tests');
 		if (error instanceof Error) {

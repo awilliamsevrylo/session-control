@@ -94,6 +94,12 @@
         "icon": "$(debug-start)"
       },
       {
+        "command": "session-control.portSessionFromViewer",
+        "title": "Port This Session to ZCode, Claude, or Grok",
+        "category": "Session Control",
+        "icon": "$(export)"
+      },
+      {
         "command": "session-control.analyzeSavedChats",
         "title": "Analyze Saved Chats",
         "category": "Session Control",
@@ -229,6 +235,18 @@
           "type": "string",
           "default": "",
           "description": "Optional Claude Code home directory for importing local Claude Code sessions. When empty, Session Control uses CLAUDE_CONFIG_DIR or ~/.claude.",
+          "scope": "resource"
+        },
+        "session-control.grok.sessionId": {
+          "type": "string",
+          "default": "",
+          "description": "Optional Drew session ID used as the default Grok port destination.",
+          "scope": "resource"
+        },
+        "session-control.grok.drewChannelPath": {
+          "type": "string",
+          "default": "drew-channel",
+          "description": "Path or command name for the Drew channel CLI used to send Grok handoffs.",
           "scope": "resource"
         },
         "session-control.cursor.userDataPath": {
@@ -556,6 +574,11 @@
           "command": "session-control.resumeSessionFromViewer",
           "when": "activeWebviewPanelId == 'session-control.sessionViewer'",
           "group": "navigation"
+        },
+        {
+          "command": "session-control.portSessionFromViewer",
+          "when": "activeWebviewPanelId == 'session-control.sessionViewer'",
+          "group": "navigation@1"
         }
       ],
       "view/item/context": [
